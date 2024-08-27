@@ -25,13 +25,14 @@ contract QuadraticVoting {
 
     euint64 immutable ZERO = FHE.asEuint64(0);
 
-    address owner;
-    Voting[] votings;
-    IERC20 votingToken;
-    uint8 lastId = 0;
+    address public owner;
+    Voting[] public votings;
+    IERC20 public votingToken;
+    uint8 public lastId = 0;
 
     constructor(IERC20 _votingToken) {
         votingToken = _votingToken;
+        owner = msg.sender;
     }
 
     modifier onlyOwner() {

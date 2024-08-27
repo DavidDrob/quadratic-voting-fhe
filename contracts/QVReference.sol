@@ -12,7 +12,7 @@ error QV_NotTransferable();
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-contract QuadraticVoting {
+contract QuadraticVotingReference {
     struct Voting {
         uint8 id;
         uint256 startDate;
@@ -28,6 +28,7 @@ contract QuadraticVoting {
 
     constructor(IERC20 _votingToken) {
         votingToken = _votingToken;
+        owner = msg.sender;
     }
 
     modifier onlyOwner() {
