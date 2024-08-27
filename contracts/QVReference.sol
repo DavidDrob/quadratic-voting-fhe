@@ -52,19 +52,24 @@ contract QuadraticVoting {
     }
 
     // user can only vote once
-    function vote(uint8 _id, uint256[] calldata _options, uint256[] calldata _votes) external {
+    function vote(uint8 _id, uint256[] calldata _votes) external {
         Voting storage voting = votings[_id];
 
         // validate input
-        if (_options.length != _votes.length) revert QV_InvalidInput();
+        if (voting.options.length != _votes.length) revert QV_InvalidInput();
         if (voting.startDate == 0) revert QV_VotingDoesntExist();
         if (block.timestamp < voting.startDate || block.timestamp > voting.endDate) revert QV_Date();
         if (_hasVoted(_id, msg.sender)) revert QV_AlreadyVoted();
 
         uint256 totalSpent = 0;
-        for (uint256 i = 0; i < _options.length; i++) {
-            totalSpent += _votes[i] ** 2;
-            voting.options[_options[i]] += _votes[i];
+
+        for (uint256 i = 0; i < voting.options.length; i++) {
+            uint256 optionWeight = _votes[i];
+
+            if (optionWeight > 0) {
+                voting.options[i] += optionWeight;
+                totalSpent += optionWeight ** 2;
+            }
         }
 
         if (votingToken.balanceOf(msg.sender) < totalSpent) revert QV_InsufficientTokens();
