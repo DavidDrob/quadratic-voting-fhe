@@ -1,10 +1,13 @@
-import type { QuadraticVoting } from "../../types";
+import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
+import type { QuadraticVoting, MockERC20 } from "../../types";
 import hre from "hardhat";
 import { ethers } from "hardhat";
 
 export async function deployVoterFixture(): Promise<{
   voter: QuadraticVoting;
   address: string;
+  mockToken: MockERC20;
+  owner: HardhatEthersSigner;
 }> {
   const accounts = await hre.ethers.getSigners();
   const contractOwner = accounts[0];
@@ -19,7 +22,7 @@ export async function deployVoterFixture(): Promise<{
   const voter = await Voter.connect(contractOwner).deploy(mockERC20Address);
   await voter.waitForDeployment();
   const address = await voter.getAddress();
-  return { voter, address };
+  return { voter, address, mockToken: mockERC20, owner: contractOwner };
 }
 
 export async function getTokensFromFaucet() {

@@ -45,7 +45,7 @@ contract QuadraticVoting {
         if (_options < 3) revert QV_InvalidInput();
 
         // initialize options array
-        euint64[] memory optionsEmpty;
+        euint64[] memory optionsEmpty = new euint64[](_options);
         for (uint256 i = 0; i < _options; i++) {
             optionsEmpty[i] = FHE.asEuint64(0);
         }
@@ -93,6 +93,10 @@ contract QuadraticVoting {
         if (userBalanceEncrypted.lt(totalSpent).decrypt()) revert QV_InsufficientTokens();
 
         voting.voted.push(msg.sender);
+    }
+
+    function getOptions(uint8 _index) public view returns (euint64[] memory) {
+        return votings[_index].options;
     }
 
     function _hasVoted(uint8 _id, address _user) internal view returns (bool) {

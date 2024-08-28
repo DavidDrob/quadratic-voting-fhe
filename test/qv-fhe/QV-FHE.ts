@@ -11,15 +11,16 @@ describe("Unit tests", function () {
     // get tokens from faucet if we're on localfhenix and don't have a balance
     await getTokensFromFaucet();
     // deploy test contract
-    const { voter, address } = await deployVoterFixture();
+    const { voter, address, mockToken, owner } = await deployVoterFixture();
     this.voter = voter;
+    this.mockToken = mockToken;
 
     // initiate fhenixjs
     this.instance = await createFheInstance(hre, address);
 
     // set admin account/signer
     const signers = await hre.ethers.getSigners();
-    this.signers.admin = signers[0];
+    this.signers.admin = owner;
   });
 
   describe("Voter", function () {
