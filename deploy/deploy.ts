@@ -19,6 +19,20 @@ const func: DeployFunction = async function () {
     }
   }
 
+  const mockToken = await deploy("MockERC20", {
+    from: signer.address,
+    args: [1_000_000],
+    log: true,
+    skipIfAlreadyDeployed: false,
+  });
+
+  const qvContract = await deploy("QuadraticVoting", {
+    from: signer.address,
+    args: [mockToken.address],
+    log: true,
+    skipIfAlreadyDeployed: false,
+  });
+
   const counter = await deploy("Counter", {
     from: signer.address,
     args: [],
@@ -27,6 +41,8 @@ const func: DeployFunction = async function () {
   });
 
   console.log(`Counter contract: `, counter.address);
+  console.log(`Mock Token contract: `, mockToken.address);
+  console.log(`QV contract: `, qvContract.address);
 };
 
 export default func;
