@@ -14,6 +14,7 @@ import MockERC20 from "../contracts/MockERC20.json";
 import { NoWalletDetected } from "./NoWalletDetected";
 import { ConnectWallet } from "./ConnectWallet";
 import { Loading } from "./Loading";
+import { Voting } from "./Voting";
 import { Transfer } from "./Transfer";
 import { TransactionErrorMessage } from "./TransactionErrorMessage";
 import { WaitingForTransactionMessage } from "./WaitingForTransactionMessage";
@@ -168,6 +169,15 @@ export class Dapp extends React.Component {
             <h2>
               Ongoing votings ({this.state.openVotings.length})
             </h2>
+            {this.state.openVotings.length && (
+                <div className="row">
+                    {this.state.openVotings.map((data, index) => (
+                        <div className="col-4" key={index}>
+                            <Voting data={data} vote={(dist) => this._handleVotingSubmission(dist)} />
+                        </div>
+                    ))}
+                </div>
+            )}
 
             <h2>
               Closed votings ({this.state.pastVotings.length})
@@ -270,6 +280,25 @@ export class Dapp extends React.Component {
       console.log(e);
     }
     this.state.txBeingSent = false;
+  }
+
+  async _handleVotingSubmission(distribution) {
+      const distributionSquared = {};
+      let sum = 0;
+
+      for (let key in distribution) {
+        distributionSquared[key] = distribution[key] ** 2;
+        sum += distributionSquared[key];
+      }
+
+      if (sum > this.state.balance) {
+          alert("cost exceeds balance");
+          return;
+      }
+      if (sum === 0) {
+          alert("must use at least one token");
+          return;
+      }
   }
 
   componentWillUnmount() {
