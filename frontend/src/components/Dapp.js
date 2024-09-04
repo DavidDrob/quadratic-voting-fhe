@@ -49,6 +49,10 @@ export class Dapp extends React.Component {
       txBeingSent: undefined,
       transactionError: undefined,
       networkError: undefined,
+      
+      startDate: undefined,
+      endDate: undefined,
+      options: undefined,
     };
 
     this.state = this.initialState;
@@ -106,6 +110,57 @@ export class Dapp extends React.Component {
 
         <div className="row">
           <div className="col-12">
+            <h2 className="mb-4">
+              Create new voting
+            </h2>
+
+        <div className="row">
+            <div className="col-6 mb-3">
+                <label htmlFor="startDate" className="form-label">Start Date</label>
+                <input
+                    defaultValue={this._convertUnixToDatetimeLocal(this.state.startDate)}
+                    onChange={this._handleInputChange}
+                    type="datetime-local" className="form-control" id="startDate" required>
+                </input>
+                <div className="invalid-feedback">
+                    Please select a start date.
+                </div>
+            </div>
+            <div className="col-6 mb-3">
+            <label htmlFor="endDate" className="form-label">End Date</label>
+            <input 
+                defaultValue={this._convertUnixToDatetimeLocal(this.state.endDate)} 
+                onChange={this._handleInputChange}
+                type="datetime-local" className="form-control" id="endDate" required></input>
+            <div className="invalid-feedback">
+            Please select an end date.
+            </div>
+            </div>
+        </div>
+
+        <div className="row">
+            <label htmlFor="options" className="col-12 form-label">Amount of Options</label>
+            <div className="mb-3 col-12" style={{ display: "flex", alignItems: "center", gap: "1rem"}}>
+                <div>
+                    <input
+                        defaultValue={this.state.options ?? 3} 
+                        onChange={this._handleInputChange}
+                        type="number" className="form-control" id="options" min="3" required></input>
+                    <div className="invalid-feedback">
+                        Please enter the number of options.
+                    </div>
+                </div>
+
+                <button type="submit" className="btn btn-warning" onClick={() => this._handleCreateVoting()}>Create Voting</button>
+                { this.state.inputError }
+            </div>
+        </div>
+
+            {this.state.txBeingSent && (
+              <WaitingForTransactionMessage txHash={this.state.txBeingSent} />
+            )}
+
+
             <h2>
               Pending votings ({this.state.newVotings.length})
             </h2>
@@ -117,15 +172,6 @@ export class Dapp extends React.Component {
             <h2>
               Closed votings ({this.state.pastVotings.length})
             </h2>
-
-            {/* 
-              Sending a transaction isn't an immediate action. You have to wait
-              for it to be mined.
-              If we are waiting for one, we show a message here.
-            */}
-            {this.state.txBeingSent && (
-              <WaitingForTransactionMessage txHash={this.state.txBeingSent} />
-            )}
 
             {/* 
               Sending a transaction can fail in multiple ways. 
@@ -167,6 +213,63 @@ export class Dapp extends React.Component {
         </div>
       </div>
     );
+  }
+
+  _convertUnixToDatetimeLocal = (unixTimestamp) => {
+    const date = new Date(unixTimestamp * 1000); // Convert to milliseconds
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+
+  _normalizeTimestamp = (timestamp) => {
+    if (timestamp.toString().length === 10) {
+        return timestamp * 1000;
+    } else if (timestamp.toString().length === 13) {
+        return timestamp;
+    } else {
+        throw new Error('Invalid timestamp length');
+    }
+  }
+
+  _handleInputChange = (e) => {
+      this.state[e.target.id] = e.target.value;
+  }
+
+  async _handleCreateVoting() {
+    const now = Math.floor(Date.now() / 1000);
+
+    const startDate = this._normalizeTimestamp(new Date(this.state.startDate).getTime());
+    const endDate = this._normalizeTimestamp(new Date(this.state.endDate).getTime());
+    const options = this.state.options ?? 3;
+
+    if (this.state.startDate >= this.state.endDate || startDate < now) {
+        this.state.inputError = "invalid date!";
+        return;
+    }
+    if (options < 3) {
+        this.state.inputError = "input at least 3 options!";
+        return;
+    }
+
+    this.state.txBeingSent = true;
+
+    try {
+      const tx = await this._qvContract.createVoting(startDate, endDate, options);
+      const receipt = await tx.wait();
+      console.log(receipt);
+
+      // update frontend
+      this._getVotingData();
+    } catch(e) {
+      this.state.inputError = "tx failed!";
+      console.log(e);
+    }
+    this.state.txBeingSent = false;
   }
 
   componentWillUnmount() {
@@ -231,13 +334,13 @@ export class Dapp extends React.Component {
     // Then, we initialize the contract using that provider and the token's
     // artifact. You can do this same thing with your contracts.
     this._qvContract = new ethers.Contract(
-        "0xD30C778F7Fd47CCfB93Caa589195eb288FC768c8",
+        "0x7C1BE03Aa7489C4D7d4cc295De13b8c4BDD6b61b",
         QVArtifact.abi,
         this._provider.getSigner(0)
     );
 
     this._token = new ethers.Contract(
-        "0x538C04cd32B199be1c7A88f8eB51E8DbeFEb0131",
+        "0x5B0ABc8c4e9Cd491C2A204bf8581Da3Ad9284ff9",
         MockERC20.abi,
         this._provider.getSigner(0)
     );
@@ -298,6 +401,10 @@ export class Dapp extends React.Component {
     this.setState({ newVotings });
     this.setState({ openVotings });
     this.setState({ pastVotings });
+
+    const now = Math.floor(Date.now() / 1000);
+    this.state.startDate = now;
+    this.state.endDate =  now + (7 * 24 * 60 * 60);
   }
 
   async _updateBalance() {

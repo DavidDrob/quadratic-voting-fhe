@@ -40,7 +40,7 @@ contract QuadraticVoting {
         _;
     }
 
-    function createVoting(uint256 _startDate, uint256 _endDate, uint256 _options) external onlyOwner {
+    function createVoting(uint256 _startDate, uint256 _endDate, uint256 _options) external {
         if (block.timestamp > _startDate || _startDate > _endDate) revert QV_Date();
         if (_options < 3) revert QV_InvalidInput();
 
