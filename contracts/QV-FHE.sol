@@ -95,6 +95,10 @@ contract QuadraticVoting {
         voting.voted.push(msg.sender);
     }
 
+    function getVotings() public view returns (Voting[] memory) {
+        return votings;
+    }
+
     function getOptions(uint8 _index) public view returns (euint64[] memory) {
         return votings[_index].options;
     }

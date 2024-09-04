@@ -7,6 +7,7 @@
     "clean": "rimraf ./artifacts ./cache ./coverage ./types ./coverage.json ./deployments/localfhenix",
     "compile": "hardhat compile",
     "task:deploy": "hardhat deploy",
+    "task:addVoting": "hardhat task:addVoting",
     "task:addCount": "hardhat task:addCount",
     "task:getCount": "hardhat task:getCount",
     "task:getFunds": "hardhat task:getFunds",

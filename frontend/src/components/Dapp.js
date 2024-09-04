@@ -106,6 +106,18 @@ export class Dapp extends React.Component {
 
         <div className="row">
           <div className="col-12">
+            <h2>
+              Pending votings ({this.state.newVotings.length})
+            </h2>
+
+            <h2>
+              Ongoing votings ({this.state.openVotings.length})
+            </h2>
+
+            <h2>
+              Closed votings ({this.state.pastVotings.length})
+            </h2>
+
             {/* 
               Sending a transaction isn't an immediate action. You have to wait
               for it to be mined.
@@ -208,6 +220,7 @@ export class Dapp extends React.Component {
     // sample project, but you can reuse the same initialization pattern.
     this._initializeEthers();
     this._getTokenData();
+    this._getVotingData();
     this._startPollingData();
   }
 
@@ -218,13 +231,13 @@ export class Dapp extends React.Component {
     // Then, we initialize the contract using that provider and the token's
     // artifact. You can do this same thing with your contracts.
     this._qvContract = new ethers.Contract(
-        "0x5c93e3B7824035B375E373FaC1578D4089dcE77A",
+        "0xD30C778F7Fd47CCfB93Caa589195eb288FC768c8",
         QVArtifact.abi,
         this._provider.getSigner(0)
     );
 
     this._token = new ethers.Contract(
-        "0xB170fC5BAC4a87A63fC84653Ee7e0db65CC62f96",
+        "0x538C04cd32B199be1c7A88f8eB51E8DbeFEb0131",
         MockERC20.abi,
         this._provider.getSigner(0)
     );
@@ -254,6 +267,37 @@ export class Dapp extends React.Component {
     const symbol = await this._token.symbol();
 
     this.setState({ tokenData: { name, symbol } });
+  }
+
+  async _getVotingData() {
+    const votings = await this._qvContract.getVotings();
+
+    const blockNumber = await this._provider.getBlockNumber();
+    const block = await this._provider.getBlock(blockNumber);
+    const currentTimestamp = block.timestamp;
+
+    const newVotings = [];
+    const openVotings = [];
+    const pastVotings = [];
+
+    for (let i in votings) {
+        const startDate = votings[i].startDate;
+        const endDate = votings[i].endDate;
+
+        if (currentTimestamp < startDate) {
+            newVotings.push(votings[i]);
+        }
+        else if (currentTimestamp >= startDate && currentTimestamp <= endDate) {
+            openVotings.push(votings[i]);
+        }
+        else {
+            pastVotings.push(votings[i]);
+        }
+    }
+
+    this.setState({ newVotings });
+    this.setState({ openVotings });
+    this.setState({ pastVotings });
   }
 
   async _updateBalance() {
