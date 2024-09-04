@@ -48,6 +48,7 @@ export class Dapp extends React.Component {
       balance: undefined,
       // The ID about transactions being sent, and any possible error with them
       txBeingSent: undefined,
+      mintTxBeingSent: undefined,
       transactionError: undefined,
       networkError: undefined,
       
@@ -100,7 +101,7 @@ export class Dapp extends React.Component {
             <p>
               Welcome <b>{this.state.selectedAddress}</b>, you have{" "}
               <b>
-                {this.state.balance.toString()} {this.state.tokenData.symbol}
+                {ethers.utils.formatEther(this.state.balance.toString())} {this.state.tokenData.symbol}
               </b>
               .
             </p>
@@ -196,30 +197,12 @@ export class Dapp extends React.Component {
           </div>
         </div>
 
-        <div className="row">
-          <div className="col-12">
-            {/*
-              If the user has no tokens, we don't show the Transfer form
-            */}
-            {this.state.balance.eq(0) && (
-              <NoTokensMessage selectedAddress={this.state.selectedAddress} />
-            )}
+        <div>
+            <button type="submit" className="btn btn-warning mb-2" onClick={() => this._handleTokenMint()}>Mint 100MTK</button>
 
-            {/*
-              This component displays a form that the user can use to send a 
-              transaction and transfer some tokens.
-              The component doesn't have logic, it just calls the transferTokens
-              callback.
-            */}
-            {this.state.balance.gt(0) && (
-              <Transfer
-                transferTokens={(to, amount) =>
-                  this._transferTokens(to, amount)
-                }
-                tokenSymbol={this.state.tokenData.symbol}
-              />
+            {this.state.mintTxBeingSent && (
+              <WaitingForTransactionMessage txHash={this.state.mintTxBeingSent} />
             )}
-          </div>
         </div>
       </div>
     );
@@ -299,6 +282,22 @@ export class Dapp extends React.Component {
           alert("must use at least one token");
           return;
       }
+  }
+
+  async _handleTokenMint() {
+    this.state.mintTxBeingSent = true;
+    const hundredInWei = ethers.utils.parseUnits('100', 'ether');
+
+    try {
+      const tx = await this._token.mint(hundredInWei);
+      const receipt = await tx.wait();
+      console.log(receipt);
+    } catch(e) {
+      alert("mint failed");
+      console.log(e);
+    }
+
+    this.state.mintTxBeingSent = true;
   }
 
   componentWillUnmount() {
