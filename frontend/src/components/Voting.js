@@ -46,7 +46,7 @@ export function Voting({ vote, data }) {
                 style={{ width: "30%" }}
                 defaultValue={0} 
                 onChange={updateInputMapping(i)}
-                type="number" className="form-control" id={i}></input>
+                type="number" min="0" className="form-control" id={i}></input>
             <div style={{ width: "40%" }}>Cost: {isNaN(inputValues[i] ** 2) ? 0 : inputValues[i] ** 2}MTK</div>
         </div>
     );

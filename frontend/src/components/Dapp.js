@@ -2,6 +2,7 @@ import React from "react";
 
 // We'll use ethers to interact with the Ethereum network and our contract
 import { ethers } from "ethers";
+import { FhenixClient, EncryptionTypes } from 'fhenixjs';
 
 // We import the contract's artifacts and address here, as we are going to be
 // using them with ethers
@@ -174,7 +175,7 @@ export class Dapp extends React.Component {
                 <div className="row">
                     {this.state.openVotings.map((data, index) => (
                         <div className="col-4" key={index}>
-                            <Voting data={data} vote={(dist) => this._handleVotingSubmission(dist)} />
+                            <Voting data={data} vote={(dist) => this._handleVotingSubmission(dist, data)} />
                         </div>
                     ))}
                 </div>
@@ -206,6 +207,18 @@ export class Dapp extends React.Component {
         </div>
       </div>
     );
+  }
+
+
+  _unwrapHexNumber = (data) => {
+    const hex = data._hex;
+    const isBigNumber = data._isBigNumber;
+
+    const decimalTimestamp = isBigNumber 
+        ? parseInt(hex, 16)
+        : Number(hex);
+
+    return decimalTimestamp;
   }
 
   _convertUnixToDatetimeLocal = (unixTimestamp) => {
@@ -265,8 +278,9 @@ export class Dapp extends React.Component {
     this.state.txBeingSent = false;
   }
 
-  async _handleVotingSubmission(distribution) {
+  async _handleVotingSubmission(distribution, voting) {
       const distributionSquared = {};
+      const balance = parseInt(this._unwrapHexNumber(this.state.balance) / 1e18);
       let sum = 0;
 
       for (let key in distribution) {
@@ -274,13 +288,36 @@ export class Dapp extends React.Component {
         sum += distributionSquared[key];
       }
 
-      if (sum > this.state.balance) {
+      if (sum > balance) {
           alert("cost exceeds balance");
           return;
       }
       if (sum === 0) {
           alert("must use at least one token");
           return;
+      }
+
+      const distributionEncrypted = {};
+
+      for (let i = 0; i < voting.options.length; i++) {
+          if (distribution[i] === undefined) {
+              distributionEncrypted[i] = await this._fhenix.encrypt(0, EncryptionTypes.uint64);
+          } else {
+              distributionEncrypted[i] = await this._fhenix.encrypt(parseInt(distribution[i] * 1e6), EncryptionTypes.uint64);
+          }
+      }
+
+      const input = Object.keys(distributionEncrypted)
+          .sort((a, b) => a - b)
+          .map(key => distributionEncrypted[key]);
+
+      try {
+        const tx = await this._qvContract.vote(voting.id.toString(), input);
+        const receipt = await tx.wait();
+        console.log(receipt);
+      } catch(e) {
+        alert("voting failed");
+        console.log(e);
       }
   }
 
@@ -297,7 +334,7 @@ export class Dapp extends React.Component {
       console.log(e);
     }
 
-    this.state.mintTxBeingSent = true;
+    this.state.mintTxBeingSent = false;
   }
 
   componentWillUnmount() {
@@ -359,16 +396,19 @@ export class Dapp extends React.Component {
     // We first initialize ethers by creating a provider using window.ethereum
     this._provider = new ethers.providers.Web3Provider(window.ethereum);
 
+    // initialize Fhenix Client
+    this._fhenix = new FhenixClient({ provider: this._provider });
+
     // Then, we initialize the contract using that provider and the token's
     // artifact. You can do this same thing with your contracts.
     this._qvContract = new ethers.Contract(
-        "0x7C1BE03Aa7489C4D7d4cc295De13b8c4BDD6b61b",
+        "0xB170fC5BAC4a87A63fC84653Ee7e0db65CC62f96",
         QVArtifact.abi,
         this._provider.getSigner(0)
     );
 
     this._token = new ethers.Contract(
-        "0x5B0ABc8c4e9Cd491C2A204bf8581Da3Ad9284ff9",
+        "0xbeb4eF1fcEa618C6ca38e3828B00f8D481EC2CC2",
         MockERC20.abi,
         this._provider.getSigner(0)
     );
@@ -412,8 +452,8 @@ export class Dapp extends React.Component {
     const pastVotings = [];
 
     for (let i in votings) {
-        const startDate = votings[i].startDate;
-        const endDate = votings[i].endDate;
+        const startDate = this._unwrapHexNumber(votings[i].startDate);
+        const endDate = this._unwrapHexNumber(votings[i].endDate);
 
         if (currentTimestamp < startDate) {
             newVotings.push(votings[i]);
